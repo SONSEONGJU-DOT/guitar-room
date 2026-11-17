@@ -429,6 +429,26 @@ b.tgt{color:var(--accent)} b.avoid{color:var(--bad)}
 .authbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--surface)}
 .authbar span{flex:1 1 240px;min-width:0}
 .member.pending{border-style:dashed}
+/* setlist+ */
+.ncount{font-size:12px;font-weight:600;color:var(--accent);margin-left:6px}
+.notes{display:flex;flex-direction:column;gap:8px;border-top:1px dashed var(--line);padding-top:10px}
+.nlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.nlist li{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;background:var(--bg);border-radius:8px;padding:8px 10px}
+.nwho{display:flex;flex-direction:column;min-width:64px}.nwho small{color:var(--muted);font-size:11px}
+.ntext{flex:1 1 200px;min-width:0;white-space:pre-wrap;font-size:14px}
+.ntags{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font:inherit;font-size:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:3px 10px;cursor:pointer}
+.chip:hover{border-color:var(--accent)}
+.notes textarea{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--surface);color:var(--ink);min-width:0}
+.picks{display:flex;flex-direction:column;gap:8px}
+.pick{border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+.pick-main{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 240px}
+.pnote{margin:2px 0;font-size:14px}
+.btn.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.pkform{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.pkform label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--muted);min-width:0}
+.pkform .wide{grid-column:1/-1}
+.pkform input,.pkform select{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0}
 </style>
 </head>
 <body>
@@ -937,6 +957,26 @@ b.tgt{color:var(--accent)} b.avoid{color:var(--bad)}
         <button class="btn" type="button" id="slFromSong">지금 연습 중인 곡 추가</button>
       </form>
       <div class="setlist" id="slList"></div>
+      <p class="hint">곡을 펼치면(메모·사보) 멤버별 의견을 남길 수 있어요. "이 곡은 이렇게 갔으면", "베이스가 어려워요" 같은 건의를 적어주세요.</p>
+    </section>
+    <p class="note" id="pkLocked" hidden></p>
+    <section class="panel" id="pkCandP" aria-labelledby="pkCandH" hidden>
+      <div class="row spread"><h2 id="pkCandH">후보곡</h2><span class="status num" id="pkCandN"></span></div>
+      <p class="hint">셋리스트에 넣을지 고민 중인 곡이에요. "하고 싶어요"를 눌러 마음을 모으고, 편집자가 셋리스트로 옮겨요.</p>
+      <div class="picks" id="pkCand"></div>
+    </section>
+    <section class="panel" id="pkRecP" aria-labelledby="pkRecH" hidden>
+      <div class="row spread"><h2 id="pkRecH">하고 싶은 곡 추천</h2><span class="status num" id="pkRecN"></span></div>
+      <form class="pkform" id="pkForm">
+        <label>곡 제목<input type="text" id="pkTitle" maxlength="80" placeholder="예: Wonderwall"></label>
+        <label>아티스트<input type="text" id="pkArtist" maxlength="60" placeholder="예: Oasis"></label>
+        <label>버전<select id="pkVer"></select></label>
+        <label>버전 설명<input type="text" id="pkVerNote" maxlength="40" placeholder="예: 2009 도쿄 라이브"></label>
+        <label class="wide">링크<input type="url" id="pkLink" maxlength="300" placeholder="https://youtu.be/... (이 버전으로 하고 싶을 때)"></label>
+        <label class="wide">이유·메모<input type="text" id="pkNote" maxlength="300" placeholder="예: 키가 보컬한테 맞고, 드럼이 신날 것 같아요"></label>
+        <div class="row wide"><button class="btn primary" type="submit">추천하기</button><span class="status" id="pkMsg" aria-live="polite"></span></div>
+      </form>
+      <div class="picks" id="pkRec"></div>
     </section>
     <section class="panel" aria-labelledby="slShareH">
       <h2 id="slShareH">셋리스트 공유</h2>
@@ -3184,7 +3224,7 @@ const SL_INST = [['guitar','기타'],['bass','베이스'],['keys','건반'],['dr
 const SLX = { shared: false, open: new Set(), local: SL, timers: {}, defer: false };
 const slSave = () => { if(!SLX.shared) store.set('setlist', SL); };
 const slCanEdit = () => !SLX.shared || bmCan('setlist');
-const slClean = s => ({ title: s.title, yt: s.yt || '', bpm: String(s.bpm || ''), key: String(s.key == null ? '' : s.key), notes: s.notes || {}, chart: s.chart || '' });
+const slClean = s => ({ title: s.title, yt: s.yt || '', bpm: String(s.bpm || ''), key: String(s.key == null ? '' : s.key), notes: s.notes || {}, chart: s.chart || '', ver: s.ver || '', link: s.link || '' });
 function slFromDb(){
   SLX.shared = true;
   SL = BM.setlist.slice().sort((a, b) => (a.order || 0) - (b.order || 0) || (a.ts || 0) - (b.ts || 0)).map(d => Object.assign({ notes: {}, chart: '' }, d, { open: SLX.open.has(d.id) }));
@@ -3220,7 +3260,7 @@ function slRender(){
   $('slList').innerHTML = SL.map((s, i) => `<article class="song${s.open ? ' open' : ''}" data-si="${i}">
     <div class="song-head">
       <span class="no num">${i + 1}</span>
-      <div class="song-title"><b>${esc(s.title)}</b><span class="num status">${[s.bpm ? s.bpm + ' BPM' : '', keyLabel(s.key)].filter(Boolean).join(' · ')}</span></div>
+      <div class="song-title"><b>${esc(s.title)}${slNoteCount(s)}</b><span class="num status">${[s.bpm ? s.bpm + ' BPM' : '', keyLabel(s.key)].filter(Boolean).join(' · ')}</span></div>
       <div class="row">
         <button class="btn sm primary" data-act="go">연습하기</button>
         <button class="btn sm" data-act="toggle" aria-expanded="${!!s.open}">${s.open ? '접기' : '메모·사보'}</button>
@@ -3233,6 +3273,8 @@ function slRender(){
       <div class="memo-grid">${SL_INST.map(([k, n]) => `<label class="memo"><span>${n}</span><textarea data-memo="${k}" rows="3"${ed ? '' : ' readonly'} placeholder="예: 12마디 페달, 브릿지 들어가기 전 필인">${esc(s.notes[k] || '')}</textarea></label>`).join('')}</div>
       <label class="memo"><span>코드 사보</span><textarea data-chart rows="3" class="num"${ed ? '' : ' readonly'} placeholder="| C | Am | F G7 | C |">${esc(s.chart || '')}</textarea></label>
       ${s.yt ? `<p class="status">링크: <a href="https://youtu.be/${esc(s.yt)}" target="_blank" rel="noopener">youtu.be/${esc(s.yt)}</a></p>` : ''}
+      ${slSongExtra(s)}
+      ${slNotesHTML(s)}
     </div>` : ''}
   </article>`).join('');
 }
@@ -3257,7 +3299,7 @@ $('slList').addEventListener('click', e => {
 });
 $('slList').addEventListener('input', e => {
   const art = e.target.closest('[data-si]'); if(!art) return; const s = SL[+art.dataset.si];
-  if(e.target.readOnly) return;
+  if(e.target.readOnly || (!e.target.dataset.memo && !e.target.hasAttribute('data-chart'))) return;
   if(e.target.dataset.memo){ s.notes = Object.assign({}, s.notes); s.notes[e.target.dataset.memo] = e.target.value; slSave(); }
   if(e.target.hasAttribute('data-chart')){ s.chart = e.target.value; slSave(); }
   if(SLX.shared && slCanEdit()){ clearTimeout(SLX.timers[s.id]); SLX.timers[s.id] = setTimeout(() => slDb(() => BM.db.doc('setlist/' + s.id).update({ notes: s.notes, chart: s.chart })), 800); }
@@ -3389,10 +3431,12 @@ async function bmInit(api){
 function bmSubscribe(){
   const timer = setTimeout(() => { if(!BM.ready) bmStatus('데이터를 아직 불러오지 못했어요. 연결을 확인해주세요.'); }, 10000);
   const onErr = () => { clearTimeout(timer); bmStatus('데이터 연결이 끊겼어요. 페이지를 다시 열어주세요.'); };
-  ['members','events','ledger','people','records','setlist'].forEach(col => BM.db.collection(col).onSnapshot(snap => {
+  ['members','events','ledger','people','records','setlist','slnotes','picks'].forEach(col => BM.db.collection(col).onSnapshot(snap => {
     BM[col] = snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
     if(!snap.metadata.fromCache && !BM.ready){ BM.ready = true; clearTimeout(timer); bmStatus(''); }
     if(col === 'setlist'){ slFromDb(); return; }
+    if(col === 'slnotes'){ slFromDb(); return; }
+    if(col === 'picks'){ picksRender(); return; }
     if(col === 'records'){ renderBandRec(); return; }
     bmRenderAll();
   }, onErr));
@@ -3409,6 +3453,11 @@ async function bmWrite(fn, okMsg, msgEl){
 }
 const memberSorted = () => BM.members.slice().sort((a, b) => (a.order || 0) - (b.order || 0) || String(a.name).localeCompare(b.name));
 const myPeople = () => BM.people.find(p => p.id === BM.uid);
+function whoOptions(){
+  const nm = String(BM.names[BM.uid] || '').replace(/\s/g, ''), guess = BM.members.find(m => nm && m.name && (nm.includes(m.name.replace(/\s/g, '')) || m.name.replace(/\s/g, '').includes(nm)));
+  const taken = new Set(BM.people.filter(p => p.id !== BM.uid && p.memberId).map(p => p.memberId));
+  return '<option value="">내 이름 고르기</option>' + memberSorted().map(m => `<option value="${esc(m.id)}"${guess && guess.id === m.id ? ' selected' : ''}>${esc(m.name)}${m.inst ? ' · ' + esc(m.inst) : ''}${taken.has(m.id) ? ' (다른 계정과 연결됨)' : ''}</option>`).join('');
+}
 const myMemberId = () => { const p = myPeople(); return p && BM.members.some(m => m.id === p.memberId) ? p.memberId : null; };
 function rsvpOf(ev, mid){
   const pds = BM.people.filter(p => p.memberId === mid && p.rsvp && p.rsvp[ev.id]);
@@ -3423,14 +3472,15 @@ function evSummary(ev){
   return { c, lates, tone, total: ms.length };
 }
 async function bmNames(){
-  const ids = [...new Set(BM.people.map(p => p.id))];
+  const ids = [...new Set(BM.people.map(p => p.id).concat((BM.slnotes || []).map(n => n.by), (BM.picks || []).map(p => p.by), [BM.uid]).filter(Boolean))];
   if(!BM.user || !ids.length) return;
   try{ const ps = await BM.user.profiles(ids); ids.forEach(id => BM.names[id] = (ps[id] && ps[id].name) || ''); }catch(e){}
 }
 function bmRenderAll(){
   if(!BM.db) return;
   bmShowOwner(); renderCal(); renderEvDetail(); renderUpcoming(); renderMembers(); renderMoney(); renderBandRec(); recProfSync();
-  bmNames().then(() => { if(VIEW === 'b-mem') renderMembers(); if(VIEW === 'rec') renderBandRec(); });
+  picksRender();
+  bmNames().then(() => { if(VIEW === 'b-mem') renderMembers(); if(VIEW === 'rec') renderBandRec(); if(VIEW === 'b-set'){ slFromDb(); picksRender(); } });
 }
 
 /* ---------- calendar ---------- */
@@ -3475,13 +3525,13 @@ function renderEvDetail(){
       <div class="row"><a class="btn sm" href="${gcalLink(ev)}" target="_blank" rel="noopener">구글 캘린더에 추가</a>${bmCan('events') ? `<button class="btn sm" data-edit="${esc(ev.id)}">수정</button><button class="btn sm ghost" data-delev="${esc(ev.id)}">삭제</button>` : ''}</div>
     </div>
     <div class="attsum num">참석 ${s.c.yes} · 늦음 ${s.c.late}${avgLate ? ` (평균 ${avgLate}분)` : ''} · 불참 ${s.c.no} · 미정 ${s.c.none}</div>
-    ${mine ? `<div class="myrsvp">
-      <span class="label">내 응답</span>
+    ${mine || (BM.uid && BM.members.length) ? `<div class="myrsvp">
+      ${mine ? '<span class="label">내 응답</span>' : `<span class="label">나는</span><select id="myWho" aria-label="나는 어느 멤버인가요">${whoOptions()}</select>`}
       <div class="seg" id="myRs">${['yes','late','no'].map(k => `<button data-rs="${k}" aria-pressed="${myR && myR.s === k}">${RS[k]}</button>`).join('')}</div>
       <label class="status">늦으면 <input type="number" id="myLate" min="5" max="240" step="5" value="${myR && myR.min ? myR.min : 30}" style="width:72px">분</label>
       <input type="text" id="myNote" maxlength="60" placeholder="메모 (예: 퇴근이 늦어요)" value="${esc(myR && myR.by === 'self' ? myR.note || '' : '')}">
       <button class="btn sm primary" id="myRsSave">응답 저장</button><span class="status" id="myRsMsg"></span>
-    </div>` : `<p class="hint">${BM.uid ? '멤버 탭에서 "내가 이 멤버예요"를 누르면 여기서 직접 참석 여부를 남길 수 있어요.' : '로그인한 멤버만 응답할 수 있어요.'}</p>`}
+    </div>${mine ? '' : '<p class="hint">처음 한 번만 내 이름을 고르면 다음부터는 바로 응답할 수 있어요.</p>'}` : `<p class="hint">${BM.uid ? '멤버가 아직 없어요. 주인이 멤버 탭에서 멤버를 먼저 추가해야 해요.' : '로그인한 멤버만 응답할 수 있어요.'}</p>`}
     <ul class="attlist">${rows}</ul>`;
 }
 $('evDetail').addEventListener('click', async e => {
@@ -3489,9 +3539,11 @@ $('evDetail').addEventListener('click', async e => {
   if(rs){ $$('#myRs button').forEach(b => b.setAttribute('aria-pressed', String(b === rs))); return; }
   if(e.target.closest('#myRsSave')){
     const pick = document.querySelector('#myRs button[aria-pressed="true"]'); if(!pick){ $('myRsMsg').textContent = '참석·늦음·불참 중 하나를 골라주세요.'; return; }
+    const mine = myMemberId(), who = mine || ($('myWho') ? $('myWho').value : '');
+    if(!who){ $('myRsMsg').textContent = '먼저 내 이름을 골라주세요.'; return; }
     const p = myPeople(), rsvp = Object.assign({}, (p && p.rsvp) || {});
     rsvp[BM.sel] = { s: pick.dataset.rs, min: pick.dataset.rs === 'late' ? clamp(+$('myLate').value || 0, 0, 600) : 0, note: $('myNote').value.trim().slice(0, 60), t: Date.now() };
-    await bmWrite(() => BM.db.doc('people/' + BM.uid).set({ memberId: p ? p.memberId : myMemberId(), rsvp }), '응답을 저장했어요.');
+    await bmWrite(() => BM.db.doc('people/' + BM.uid).set({ memberId: who, rsvp }), mine ? '응답을 저장했어요.' : '내 이름을 연결하고 응답을 저장했어요.');
     return;
   }
   const ed = e.target.closest('[data-edit]');
@@ -3636,6 +3688,106 @@ $('leList').addEventListener('click', async e => {
 });
 $('evDate').value = ymd(new Date()); $('leDate').value = ymd(new Date());
 if(IN_CLAUDE) bmInit();
+
+
+/* =========================================================
+   SETLIST+ — per-song opinions, candidate songs, song recommendations (shared db)
+   ========================================================= */
+const NOTE_TAGS = ['베이스가 어려워요', '키를 낮추고 싶어요', '템포를 늦추자', '엔딩을 맞춰보자', '인트로를 다시 정하자', '솔로 길이를 정하자'];
+const VERS = ['원곡', '라이브', '어쿠스틱', '커버', '리메이크', '기타'];
+const slShared = () => !!(BM.db && SLX.shared);
+function authorName(uid){
+  if(!uid) return '멤버';
+  const p = BM.people.find(x => x.id === uid), m = p && BM.members.find(x => x.id === p.memberId);
+  if(m) return m.name;
+  return uid === BM.uid ? '나' : (BM.names[uid] || '멤버');
+}
+const whenText = t => { if(!t) return ''; const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+const notesOf = id => (BM.slnotes || []).filter(n => n.songId === id).sort((a, b) => (a.ts || 0) - (b.ts || 0));
+function slNoteCount(s){ if(!slShared() || !s.id) return ''; const n = notesOf(s.id).length; return n ? ` <span class="ncount">의견 ${n}</span>` : ''; }
+function slSongExtra(s){
+  const ver = [s.ver, s.link ? `<a href="${esc(s.link)}" target="_blank" rel="noopener">참고 링크</a>` : ''].filter(Boolean).join(' · ');
+  return ver ? `<p class="status">버전: ${ver}</p>` : '';
+}
+function slNotesHTML(s){
+  if(!BM.db) return `<p class="hint">${IN_CLAUDE ? '' : '로그인하면 곡마다 의견을 남길 수 있어요.'}</p>`;
+  if(!slShared() || !s.id) return '';
+  const list = notesOf(s.id), mineCan = n => n.by === BM.uid || bmCan('setlist');
+  return `<div class="notes">
+    <div class="label">의견 · 건의</div>
+    ${list.length ? `<ul class="nlist">${list.map(n => `<li><span class="nwho"><b>${esc(authorName(n.by))}</b><small class="num">${whenText(n.ts)}</small></span><span class="ntext">${esc(n.text)}</span>${mineCan(n) ? `<button class="btn sm ghost" data-nact="del" data-nid="${esc(n.id)}" aria-label="의견 지우기">지우기</button>` : ''}</li>`).join('')}</ul>` : '<p class="hint">아직 의견이 없어요. "이 곡은 이렇게 갔으면" 같은 생각을 남겨보세요.</p>'}
+    <div class="ntags">${NOTE_TAGS.map(t => `<button class="chip" data-nact="tag" data-tag="${esc(t)}">${esc(t)}</button>`).join('')}</div>
+    <div class="row"><textarea data-note rows="2" maxlength="300" placeholder="예: 브릿지에서 한 번 쉬고 들어가요 / 베이스 리프 단순하게 바꿔도 될까요?" style="flex:1 1 240px"></textarea><button class="btn sm primary" data-nact="add">의견 남기기</button></div>
+  </div>`;
+}
+$('slList').addEventListener('click', async e => {
+  const b = e.target.closest('[data-nact]'); if(!b) return;
+  const art = b.closest('[data-si]'), s = art && SL[+art.dataset.si]; if(!s) return;
+  const ta = art.querySelector('textarea[data-note]');
+  if(b.dataset.nact === 'tag'){ ta.value = ta.value ? ta.value.trim() + ' ' + b.dataset.tag : b.dataset.tag; ta.focus(); return; }
+  if(b.dataset.nact === 'add'){
+    const text = ta.value.trim().slice(0, 300); if(!text){ ta.focus(); return; }
+    b.disabled = true;
+    const ok = await bmWrite(() => BM.db.collection('slnotes').add({ songId: s.id, text, by: BM.uid || '', ts: Date.now() }), '의견을 남겼어요.', $('slShareMsg'));
+    b.disabled = false; if(ok){ ta.value = ''; ta.blur(); slFromDb(); }
+    return;
+  }
+  if(b.dataset.nact === 'del'){
+    if(!b.dataset.confirm){ b.dataset.confirm = '1'; b.textContent = '정말 지우기'; return; }
+    await bmWrite(() => BM.db.doc('slnotes/' + b.dataset.nid).delete(), '의견을 지웠어요.', $('slShareMsg'));
+  }
+});
+
+/* ---------- picks: recommendations (rec) and candidates (cand) ---------- */
+const pickVotes = p => Object.keys(p.votes || {}).filter(k => p.votes[k]).length;
+const pickSort = (a, b) => pickVotes(b) - pickVotes(a) || (b.ts || 0) - (a.ts || 0);
+function pickCard(p){
+  const mine = p.by === BM.uid, ed = bmCan('setlist'), voted = !!(p.votes && p.votes[BM.uid]);
+  const link = p.link ? `<a href="${esc(p.link)}" target="_blank" rel="noopener">${/youtu/.test(p.link) ? '유튜브' : '링크'}</a>` : '';
+  return `<article class="pick" data-pk="${esc(p.id)}">
+    <div class="pick-main"><b>${esc(p.title)}</b><span class="status">${[esc(p.artist || ''), esc(p.ver || ''), link].filter(Boolean).join(' · ')}</span>
+      ${p.note ? `<p class="pnote">${esc(p.note)}</p>` : ''}<span class="hint">${esc(authorName(p.by))} 추천 · ${whenText(p.ts)}</span></div>
+    <div class="row">
+      <button class="btn sm${voted ? ' on' : ''}" data-pact="vote" aria-pressed="${voted}">하고 싶어요 ${pickVotes(p)}</button>
+      ${ed ? (p.status === 'cand' ? `<button class="btn sm primary" data-pact="toset">셋리스트에 넣기</button><button class="btn sm ghost" data-pact="torec">추천으로 내리기</button>` : `<button class="btn sm" data-pact="tocand">후보로 올리기</button>`) : ''}
+      ${mine || ed ? `<button class="btn sm ghost" data-pact="del">지우기</button>` : ''}
+    </div>
+  </article>`;
+}
+function picksRender(){
+  const on = !!BM.db;
+  $('pkLocked').hidden = on; $('pkCandP').hidden = $('pkRecP').hidden = !on;
+  if(!on){ $('pkLocked').textContent = IN_CLAUDE ? '불러오는 중이에요.' : '후보곡과 곡 추천은 멤버끼리 나누는 기능이라, 밴드 탭에서 로그인하면 쓸 수 있어요.'; return; }
+  const all = BM.picks || [], cands = all.filter(p => p.status === 'cand').sort(pickSort), recs = all.filter(p => p.status !== 'cand').sort(pickSort);
+  $('pkCand').innerHTML = cands.length ? cands.map(pickCard).join('') : `<span class="empty">${bmCan('setlist') ? '아래 추천곡에서 "후보로 올리기"를 누르면 여기로 와요.' : '아직 후보곡이 없어요. 편집자가 추천곡 중에서 골라 올려요.'}</span>`;
+  $('pkRec').innerHTML = recs.length ? recs.map(pickCard).join('') : '<span class="empty">하고 싶은 곡을 추천해보세요. 같은 곡이라도 특정 라이브 버전이면 링크를 같이 남기면 좋아요.</span>';
+  $('pkCandN').textContent = cands.length ? `${cands.length}곡` : ''; $('pkRecN').textContent = recs.length ? `${recs.length}곡` : '';
+}
+['pkCand', 'pkRec'].forEach(id => $(id).addEventListener('click', async e => {
+  const b = e.target.closest('[data-pact]'); if(!b) return;
+  const p = (BM.picks || []).find(x => x.id === b.closest('[data-pk]').dataset.pk); if(!p) return;
+  const act = b.dataset.pact, msg = $('pkMsg');
+  if(act === 'vote'){ const votes = Object.assign({}, p.votes || {}); if(votes[BM.uid]) delete votes[BM.uid]; else votes[BM.uid] = true; return bmWrite(() => BM.db.doc('picks/' + p.id).set(Object.assign({}, pickData(p), { votes })), '', msg); }
+  if(act === 'tocand' || act === 'torec') return bmWrite(() => BM.db.doc('picks/' + p.id).set(Object.assign({}, pickData(p), { status: act === 'tocand' ? 'cand' : 'rec' })), act === 'tocand' ? `"${p.title}"을 후보곡으로 올렸어요.` : '추천곡으로 내렸어요.', msg);
+  if(act === 'del'){ if(!b.dataset.confirm){ b.dataset.confirm = '1'; b.textContent = '정말 지우기'; return; } return bmWrite(() => BM.db.doc('picks/' + p.id).delete(), '지웠어요.', msg); }
+  if(act === 'toset'){
+    const yt = p.link ? parseYT(p.link) : null;
+    const ok = await bmWrite(() => BM.db.collection('setlist').add(Object.assign(slClean({ title: p.title + (p.artist ? ' - ' + p.artist : ''), yt: yt ? yt.id : '', bpm: '', key: '', notes: {}, chart: '' }), { ver: p.ver || '', link: p.link || '', order: SL.reduce((a, s) => Math.max(a, (s.order || 0) + 1), 0), ts: Date.now() })), `"${p.title}"을 셋리스트에 넣었어요.`, msg);
+    if(ok) bmWrite(() => BM.db.doc('picks/' + p.id).delete(), '', msg);
+  }
+}));
+const pickData = p => ({ title: p.title || '', artist: p.artist || '', ver: p.ver || '', link: p.link || '', note: p.note || '', by: p.by || '', status: p.status || 'rec', votes: p.votes || {}, ts: p.ts || Date.now() });
+$('pkVer').innerHTML = VERS.map(v => `<option>${v}</option>`).join('');
+$('pkForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if(!BM.db) return;
+  const title = $('pkTitle').value.trim(); if(!title){ $('pkTitle').focus(); return; }
+  const link = $('pkLink').value.trim();
+  if(link && !/^https?:\/\//i.test(link)){ $('pkMsg').textContent = '링크는 https:// 로 시작하는 주소를 넣어주세요.'; return; }
+  const ver = $('pkVer').value + ($('pkVerNote').value.trim() ? ' · ' + $('pkVerNote').value.trim() : '');
+  const ok = await bmWrite(() => BM.db.collection('picks').add({ title: title.slice(0, 80), artist: $('pkArtist').value.trim().slice(0, 60), ver: ver.slice(0, 80), link: link.slice(0, 300), note: $('pkNote').value.trim().slice(0, 300), by: BM.uid || '', status: 'rec', votes: BM.uid ? { [BM.uid]: true } : {}, ts: Date.now() }), `"${title}"을 추천했어요.`, $('pkMsg'));
+  if(ok) ['pkTitle', 'pkArtist', 'pkVerNote', 'pkLink', 'pkNote'].forEach(id => $(id).value = '');
+});
 
 
 /* =========================================================
